@@ -177,7 +177,7 @@ class DataCleanEnvironment(Environment):
                 current_score += 1.0
             score = current_score / max_score
             
-        return score
+        return max(0.01, min(0.99, float(score)))
 
     @property
     def state(self) -> State:
