@@ -1,56 +1,92 @@
----
-title: Data Clean Env
-emoji: 🧹
-colorFrom: blue
-colorTo: green
-sdk: docker
-pinned: false
-app_port: 8000
-tags:
-  - openenv
+# 🧹 OpenEnv: Data Clean Environment
+### The Real-World Benchmarking for Agentic Data Engineering
+
+[![OpenEnv Spec](https://img.shields.io/badge/OpenEnv-Compatible-green?style=for-the-badge&logo=pytorch)](https://github.com/meta-pytorch/OpenEnv)
+[![HF Space](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue?style=for-the-badge)](https://huggingface.co/spaces/anugrah55/data_clean_env)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
+
 ---
 
-# Data Clean Environment for OpenEnv
+## 🌟 Overview
+**Data Clean Env** is a high-fidelity, production-grade [OpenEnv](https://github.com/meta-pytorch/OpenEnv) implementation designed to evaluate and train Reinforcement Learning (RL) agents on the messy, complex reality of **Data Cleaning**. 
 
-## Overview and Motivation
-Data cleaning is one of the most time-consuming real-world tasks for data scientists and analysts.
-This OpenEnv simulates a data cleaning scenario where an AI agent must clean a dirty pandas DataFrame.
-The agent interacts with the DataFrame using discrete operations (filling NaNs, dropping columns, etc.)
-and receives a score based on how perfectly it cleans the data according to the task objective.
+Unlike "toy" environments, this project simulates the exact workflow of a data engineer: identifying schema inconsistencies, handling missing values, casting types, and pruning noise from real-world datasets using the power of `pandas`.
 
-## Action Space
-The environment expects a `DataCleanAction` which performs one atomic change to the dataframe:
-- `fill_na`: Provide `column_name` and `value` to fill NaNs.
-- `drop_na`: Provide `column_name` to drop rows with NaNs in that column.
-- `drop_column`: Provide `column_name` to drop it.
-- `rename_column`: Provide `column_name` and `value` (new name).
-- `change_type`: Provide `column_name` and `value` ('int', 'float', 'str').
-- `submit`: Commit the final dataframe for grading.
+---
 
-## Observation Space
-The environment returns a `DataCleanObservation` detailing the current dataframe state:
-- `df_schema`: The dictionary representation of column types.
-- `missing_values`: A dictionary representation of NaN counts per column.
-- `head`: The first 5 rows in string format.
-- `feedback`: Text feedback of the last action.
-- `last_error`: Text description of any error encountered.
+## 🛠️ Environment Architecture
 
-## Tasks and Difficulty
-- **easy_clean (Easy)**: Fill missing values in a single column ('age').
-- **medium_clean (Medium)**: Handle multiple missing value types and drop an unnecessary column.
-- **hard_clean (Hard)**: Handle missing values, rename columns, and change column data types.
+### 🧠 Action Space
+The agent interacts with the environment through atomic, high-level data operations defined in `models.py`:
 
-## Setup and Usage
-1. Build the Docker image:
-   `docker build -t openenv_data_clean:latest -f server/Dockerfile .`
-2. Run the server locally:
-   `docker run -p 8000:8000 openenv_data_clean:latest`
-3. Run inference baseline:
-   `export HF_TOKEN="your_token"`
-   `export IMAGE_NAME="openenv_data_clean:latest"`
-   `python inference.py`
+| Action | Parameters | Description |
+| :--- | :--- | :--- |
+| `fill_na` | `column_name`, `value` | Replaces missing values with a specific constant. |
+| `drop_na` | `column_name` | Removes rows containing missing data in the target column. |
+| `drop_column`| `column_name` | Deletes irrelevant or noisy features from the dataset. |
+| `rename_column`| `column_name`, `value`| Fixes naming inconsistencies to match target schemas. |
+| `change_type` | `column_name`, `value` | Casts columns to `int`, `float`, or `str` for downstream compatibility. |
+| `submit` | - | Finalizes the cleaning process and triggers the programmatic grader. |
 
-## Baseline Scores
-- easy_clean: 1.00
-- medium_clean: 1.00
-- hard_clean: 1.00
+### 👁️ Observation Space
+The agent perceives the state of the data through a detailed schema:
+- **`df_schema`**: Real-time dictionary of column data types.
+- **`missing_values`**: Current counts of `NaN` values per column.
+- **`head`**: A preview of the first 5 rows to identify formatting patterns.
+- **`feedback`**: Semantic descriptions of the impact of the last action.
+
+---
+
+## 📈 Task Progression & Grading
+
+Each task is evaluated by a **deterministic programmatic grader** that compares the agent's output against a "Gold Standard" target, producing a score strictly between **(0.0, 1.0)**.
+
+1.  **🟢 Easy (`easy_clean`)**: 
+    - **Goal**: Basic imputation.
+    - **Challenge**: Fill missing 'age' values.
+2.  **🟡 Medium (`medium_clean`)**: 
+    - **Goal**: Noise reduction.
+    - **Challenge**: Handle missing values across multiple columns and remove "junk" features.
+3.  **🔴 Hard (`hard_clean`)**: 
+    - **Goal**: Full schema alignment.
+    - **Challenge**: Rename columns, perform safe type casting on dirty strings, and handle complex missing value fallbacks.
+
+---
+
+## 🚀 Quick Start
+
+### 🐳 Run with Docker
+```bash
+# Build the production image
+docker build -t openenv_data_clean:latest -f server/Dockerfile .
+
+# Start the environment server
+docker run -p 8000:8000 openenv_data_clean:latest
+```
+
+### 🧪 Baseline Inference
+We provide a deterministic, zero-temperature baseline script using the OpenAI client:
+```bash
+export HF_TOKEN="your_huggingface_token"
+export IMAGE_NAME="openenv_data_clean:latest"
+python inference.py
+```
+
+---
+
+## ⚖️ Reward Shaping
+Our reward function is designed for efficient RL convergence:
+- **Incremental Progress**: `+0.1` for every valid schema improvement.
+- **Penalization**: `-0.05` for invalid operations (e.g., targetting non-existent columns).
+- **Completion Bonus**: A final reward scaling with the total grader score `[0.01 - 0.99]`.
+
+---
+
+## 🎯 Meta Hackathon Compliance
+- ✅ **Typed Models**: Fully Pydantic-powered `Observation` and `Action`.
+- ✅ **API Standard**: Implements `step()`, `reset()`, and `state()`.
+- ✅ **Strict Logs**: Emits `[START]`, `[STEP]`, and `[END]` traces exactly as required.
+- ✅ **Robustness**: Handles network timeouts and invalid JSON gracefully.
+
+---
+Built with ❤️ for the Meta & Hugging Face OpenEnv Hackathon.
