@@ -4,11 +4,11 @@ from openenv.core.client_types import StepResult
 from openenv.core.env_server.types import State
 from openenv.core import EnvClient
 
-from .models import DataCleanAction, DataCleanObservation
-from .server.data_clean_env_environment import DataCleanState
+from models import DataCleanAction, DataCleanObservation
+from server.data_clean_env_environment import DataCleanState
 
 class DataCleanEnv(
-    EnvClient[DataCleanAction, DataCleanObservation]
+    EnvClient[DataCleanAction, DataCleanObservation, DataCleanState]
 ):
     def _step_payload(self, action: DataCleanAction) -> Dict:
         return action.model_dump()
