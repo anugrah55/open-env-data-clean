@@ -86,7 +86,7 @@ Our reward function is designed for efficient RL convergence:
 - ✅ **Typed Models**: Fully Pydantic-powered `Observation` and `Action`.
 - ✅ **API Standard**: Implements `step()`, `reset()`, and `state()`.
 - ✅ **Strict Logs**: Emits `[START]`, `[STEP]`, and `[END]` traces exactly as required.
-- ✅ **Robustness**: Handles network timeouts and invalid JSON gracefully.
+- ✅ **Robustness**: Handles network timeouts and invalid JSON carefully.
 
 ---
 Built with ❤️ for the Meta & Hugging Face OpenEnv Hackathon.
