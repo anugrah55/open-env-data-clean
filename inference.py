@@ -15,7 +15,7 @@ HF_TOKEN = os.getenv("HF_TOKEN")
 
 BENCHMARK = "data_clean_env"
 MAX_STEPS = 10
-TEMPERATURE = 0.7
+TEMPERATURE = 0.0
 
 SYSTEM_PROMPT = textwrap.dedent(
     """
