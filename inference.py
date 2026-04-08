@@ -81,13 +81,13 @@ def get_model_action(client: OpenAI, obs_dict: dict) -> dict:
 async def run_task(task_name: str, client: OpenAI, env_client) -> None:
     log_start(task=task_name, env=BENCHMARK, model=MODEL_NAME)
     
+    rewards = []
+    steps_taken = 0
+    score = 0.0
+    success = False
+    
     try:
         result = await env_client.reset(task=task_name)
-        
-        rewards = []
-        steps_taken = 0
-        score = 0.0
-        success = False
         
         for step in range(1, MAX_STEPS + 1):
             if result.done:
@@ -123,10 +123,11 @@ async def run_task(task_name: str, client: OpenAI, env_client) -> None:
                 break
                 
         success = score >= 0.5
-        log_end(success=success, steps=steps_taken, score=score, rewards=rewards)
         
     except Exception as e:
         print(f"[DEBUG] Error running task {task_name}: {e}", flush=True)
+    finally:
+        log_end(success=success, steps=steps_taken, score=score, rewards=rewards)
 
 async def main() -> None:
     if HF_TOKEN is None:
@@ -134,12 +135,27 @@ async def main() -> None:
 
     client = OpenAI(base_url=API_BASE_URL, api_key=HF_TOKEN)
     image_name = os.getenv("LOCAL_IMAGE_NAME") or os.getenv("IMAGE_NAME")
-    env_client = await get_client(image_name)
+    
+    task_name_env = os.getenv("DATA_CLEAN_ENV_TASK")
+    tasks_to_run = [task_name_env] if task_name_env else ["easy_clean", "medium_clean", "hard_clean"]
 
-    for task in ["easy_clean", "medium_clean", "hard_clean"]:
-        await run_task(task, client, env_client)
-        
-    await env_client.close()
+    try:
+        env_client = await get_client(image_name)
+    except Exception as e:
+        print(f"[DEBUG] Failed to start env_client: {e}", flush=True)
+        for task in tasks_to_run:
+            log_start(task=task, env=BENCHMARK, model=MODEL_NAME)
+            log_end(success=False, steps=0, score=0.0, rewards=[])
+        return
+
+    try:
+        for task in tasks_to_run:
+            await run_task(task, client, env_client)
+    finally:
+        try:
+            await env_client.close()
+        except Exception as e:
+            print(f"[DEBUG] env.close() error: {e}", flush=True)
 
 if __name__ == "__main__":
     asyncio.run(main())
