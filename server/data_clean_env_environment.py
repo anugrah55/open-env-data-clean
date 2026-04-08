@@ -147,8 +147,11 @@ class DataCleanEnvironment(Environment):
         
         if task == "easy_clean":
             if "age" in self._df.columns and self._df["age"].isna().sum() == 0:
-                if (self._df["age"] == self._target_df["age"]).all():
-                    score = 1.0
+                try:
+                    if len(self._df["age"]) == len(self._target_df["age"]) and (self._df["age"] == self._target_df["age"]).all():
+                        score = 1.0
+                except Exception:
+                    pass
         
         elif task == "medium_clean":
             max_score = 3.0

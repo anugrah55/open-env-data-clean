@@ -76,7 +76,7 @@ def get_model_action(client: OpenAI, obs_dict: dict) -> dict:
         return json.loads(text.strip())
     except Exception as exc:
         print(f"[DEBUG] Model request failed: {exc}", flush=True)
-        return {"action_type": "submit"}
+        return {"action_type": "fill_na", "column_name": "invalid", "value": "invalid"}
 
 async def run_task(task_name: str, client: OpenAI, env_client) -> None:
     log_start(task=task_name, env=BENCHMARK, model=MODEL_NAME)
