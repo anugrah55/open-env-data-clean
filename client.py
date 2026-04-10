@@ -1,19 +1,22 @@
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 from openenv.core.client_types import StepResult
-from openenv.core.env_server.types import State
 from openenv.core import EnvClient
 
-from models import DataCleanAction, DataCleanObservation
-from server.data_clean_env_environment import DataCleanState
+try:
+    from .models import DataCleanAction, DataCleanObservation
+    from .server.data_clean_env_environment import DataCleanState
+except ImportError:
+    from models import DataCleanAction, DataCleanObservation
+    from server.data_clean_env_environment import DataCleanState
 
 class DataCleanEnv(
     EnvClient[DataCleanAction, DataCleanObservation, DataCleanState]
 ):
-    def _step_payload(self, action: DataCleanAction) -> Dict:
+    def _step_payload(self, action: DataCleanAction) -> Dict[str, Any]:
         return action.model_dump()
 
-    def _parse_result(self, payload: Dict) -> StepResult[DataCleanObservation]:
+    def _parse_result(self, payload: Dict[str, Any]) -> StepResult[DataCleanObservation]:
         obs_data = payload.get("observation", {})
         observation = DataCleanObservation(
             df_schema=obs_data.get("df_schema", ""),
@@ -28,11 +31,11 @@ class DataCleanEnv(
 
         return StepResult(
             observation=observation,
-            reward=payload.get("reward"),
+            reward=payload.get("reward", 0.0),
             done=payload.get("done", False),
         )
 
-    def _parse_state(self, payload: Dict) -> DataCleanState:
+    def _parse_state(self, payload: Dict[str, Any]) -> DataCleanState:
         return DataCleanState(
             episode_id=payload.get("episode_id", ""),
             step_count=payload.get("step_count", 0),
@@ -41,7 +44,7 @@ class DataCleanEnv(
             target_df_json=payload.get("target_df_json", ""),
         )
 
-async def get_client(image_name: Optional[str] = None):
+async def get_client(image_name: Optional[str] = None) -> DataCleanEnv:
     if image_name:
         client = await DataCleanEnv.from_docker_image(image_name)
     else:

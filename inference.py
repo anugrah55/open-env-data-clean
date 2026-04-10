@@ -131,14 +131,18 @@ async def run_task(task_name: str, client: OpenAI, env_client) -> None:
         log_end(success=success, steps=steps_taken, score=score, rewards=rewards)
 
 async def main() -> None:
+    task_name_env = os.getenv("DATA_CLEAN_ENV_TASK")
+    tasks_to_run = [task_name_env] if task_name_env else ["easy_clean", "medium_clean", "hard_clean"]
+
     if HF_TOKEN is None:
-        raise ValueError("HF_TOKEN environment variable is required")
+        print("[DEBUG] HF_TOKEN environment variable is required", flush=True)
+        for task in tasks_to_run:
+            log_start(task=task, env=BENCHMARK, model=MODEL_NAME)
+            log_end(success=False, steps=0, score=0.0, rewards=[])
+        return
 
     client = OpenAI(base_url=API_BASE_URL, api_key=HF_TOKEN)
     image_name = os.getenv("LOCAL_IMAGE_NAME") or os.getenv("IMAGE_NAME")
-    
-    task_name_env = os.getenv("DATA_CLEAN_ENV_TASK")
-    tasks_to_run = [task_name_env] if task_name_env else ["easy_clean", "medium_clean", "hard_clean"]
 
     try:
         env_client = await get_client(image_name)

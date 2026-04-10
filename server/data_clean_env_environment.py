@@ -1,13 +1,15 @@
-import json
 from uuid import uuid4
-from typing import Dict, Any, Optional
+from typing import Any, Optional
 import pandas as pd
 import numpy as np
 
 from openenv.core.env_server.interfaces import Environment
 from openenv.core.env_server.types import State
 
-from models import DataCleanAction, DataCleanObservation
+try:
+    from ..models import DataCleanAction, DataCleanObservation
+except ImportError:
+    from models import DataCleanAction, DataCleanObservation
 
 class DataCleanState(State):
     current_df_json: str
@@ -21,6 +23,29 @@ class DataCleanEnvironment(Environment):
         self._state = DataCleanState(episode_id=str(uuid4()), step_count=0, current_df_json="", task_name="", target_df_json="")
         self._df: pd.DataFrame = pd.DataFrame()
         self._target_df: pd.DataFrame = pd.DataFrame()
+
+    def _columns_match_target(self) -> bool:
+        return list(self._df.columns) == list(self._target_df.columns)
+
+    def _series_matches_target(self, column_name: str) -> bool:
+        if column_name not in self._df.columns or column_name not in self._target_df.columns:
+            return False
+
+        left = self._df[column_name].reset_index(drop=True)
+        right = self._target_df[column_name].reset_index(drop=True)
+        return left.equals(right)
+
+    def _numeric_series_matches_target(self, column_name: str) -> bool:
+        if column_name not in self._df.columns or column_name not in self._target_df.columns:
+            return False
+
+        try:
+            left = pd.to_numeric(self._df[column_name]).reset_index(drop=True)
+            right = pd.to_numeric(self._target_df[column_name]).reset_index(drop=True)
+        except Exception:
+            return False
+
+        return left.equals(right)
         
     def _get_obs(self, feedback: Optional[str] = None, error: Optional[str] = None, done: bool = False, reward: float = 0.0) -> DataCleanObservation:
         schema = str(self._df.dtypes.to_dict())
@@ -146,39 +171,50 @@ class DataCleanEnvironment(Environment):
         score = 0.0
         
         if task == "easy_clean":
-            if "age" in self._df.columns and self._df["age"].isna().sum() == 0:
-                try:
-                    if len(self._df["age"]) == len(self._target_df["age"]) and (self._df["age"] == self._target_df["age"]).all():
-                        score = 1.0
-                except Exception:
-                    pass
-        
-        elif task == "medium_clean":
             max_score = 3.0
             current_score = 0.0
-            if "name" in self._df.columns and self._df["name"].isna().sum() == 0:
+
+            if self._columns_match_target():
                 current_score += 1.0
             if "age" in self._df.columns and self._df["age"].isna().sum() == 0:
                 current_score += 1.0
-            if "ignore_me" not in self._df.columns:
+            if self._series_matches_target("age"):
                 current_score += 1.0
+
+            score = current_score / max_score
+        
+        elif task == "medium_clean":
+            max_score = 4.0
+            current_score = 0.0
+
+            if self._columns_match_target():
+                current_score += 1.0
+            if len(self._df) == len(self._target_df):
+                current_score += 1.0
+            if self._series_matches_target("name"):
+                current_score += 1.0
+            if self._numeric_series_matches_target("age"):
+                current_score += 1.0
+
             score = current_score / max_score
             
         elif task == "hard_clean":
             max_score = 4.0
             current_score = 0.0
-            if "emp_id" in self._df.columns:
+
+            if self._columns_match_target():
                 current_score += 1.0
-            if "Dept" not in self._df.columns:
+            if self._series_matches_target("emp_id"):
                 current_score += 1.0
-            if "Salary" in self._df.columns and self._df["Salary"].isna().sum() == 0 and pd.api.types.is_numeric_dtype(self._df["Salary"]):
+            if self._numeric_series_matches_target("Salary"):
                 current_score += 1.0
-            if "JoinDate" in self._df.columns and self._df["JoinDate"].isna().sum() == 0:
+            if self._series_matches_target("JoinDate"):
                 current_score += 1.0
+
             score = current_score / max_score
             
         return max(0.01, min(0.99, float(score)))
 
     @property
-    def state(self) -> State:
+    def state(self) -> DataCleanState:
         return self._state

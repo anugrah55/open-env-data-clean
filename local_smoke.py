@@ -1,7 +1,8 @@
 import asyncio
-import os
+
 from models import DataCleanAction
 from client import get_client
+
 
 async def test_env():
     # Test without docker first

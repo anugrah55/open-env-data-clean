@@ -35,9 +35,12 @@ except Exception as e:  # pragma: no cover
         "openenv is required for the web interface. Install dependencies with '\n    uv sync\n'"
     ) from e
 
-# Import from local models.py (PYTHONPATH includes /app/env in Docker)
-from models import DataCleanAction, DataCleanObservation
-from .data_clean_env_environment import DataCleanEnvironment
+try:
+    from ..models import DataCleanAction, DataCleanObservation
+    from .data_clean_env_environment import DataCleanEnvironment
+except ImportError:
+    from models import DataCleanAction, DataCleanObservation
+    from .data_clean_env_environment import DataCleanEnvironment
 
 
 # Create the app with web interface and README integration
@@ -50,7 +53,7 @@ app = create_app(
 )
 
 
-def main(host: str = "0.0.0.0", port: int = 8000):
+def main(host: str = "0.0.0.0", port: int = 8000) -> None:
     """
     Entry point for direct execution via uv run or python -m.
 
