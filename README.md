@@ -1,3 +1,16 @@
+---
+title: Data Clean Env
+emoji: 🧹
+colorFrom: blue
+colorTo: green
+sdk: docker
+pinned: false
+app_port: 8000
+base_path: /web
+tags:
+  - openenv
+---
+
 # 🧹 OpenEnv: Data Clean Environment
 ### The Real-World Benchmarking for Agentic Data Engineering
 
